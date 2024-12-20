@@ -1,6 +1,8 @@
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 
+from src.agent import get_answer
+
 # MongoDB Setup
 client = MongoClient('mongodb://localhost:27017/')
 db = client['marketmate']
@@ -77,8 +79,8 @@ def send_message_to_conversation(conversation_id, user_message):
     )
 
     ai_response = {
-        "role": "AI",
-        "content": f"Echo: {user_message}"  # Replace with actual LLM response logic
+        "role": "ai",
+        "content": get_answer(conversation['messages'] + [message])
     }
     conversations_collection.update_one(
         {"_id": ObjectId(conversation_id)},

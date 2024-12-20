@@ -10,6 +10,8 @@ def create_conversation(user_id):
     if response.status_code == 201:
         return response.json()
     else:
+        st.sidebar.error(
+            f"Error: {response.json().get('error', 'Failed to create a new conversation.')}")
         return None
 
 # Fetch user conversations and display in sidebar
@@ -18,6 +20,8 @@ def fetch_conversations(user_id):
     if response.status_code == 200:
         return response.json()
     else:
+        st.sidebar.error(
+            f"Error: {response.json().get('error', 'Failed to fetch conversations.')}")
         return []
 
 # Add button to create a new conversation
@@ -27,8 +31,6 @@ if st.sidebar.button("Add New Conversation"):
         st.sidebar.success(f"New conversation created")
         # Select the new conversation
         st.session_state.selected_conversation = new_conversation_info
-    else:
-        st.sidebar.error("Failed to create a new conversation.")
 
 conversations = fetch_conversations(USER_ID)
 st.sidebar.title("Conversations")
@@ -47,7 +49,8 @@ for conversation in conversations:
                     st.session_state.selected_conversation = None
                 st.rerun()
             else:
-                st.sidebar.error("Failed to delete conversation.")
+                st.sidebar.error(
+                    f"Error: {response.json().get('error', 'Failed to delete conversation.')}")
 
 # Fetch messages for the selected conversation
 def fetch_messages(conversation_id):
@@ -57,6 +60,8 @@ def fetch_messages(conversation_id):
         # Filter to only return human and AI responses
         return [msg for msg in messages if msg["role"] in ["user", "assistant"] and msg["content"]]
     else:
+        st.error(
+            f"Error: {response.json().get('error', 'Failed to fetch messages.')}")
         return []
 
 # Display messages for the selected conversation
@@ -87,6 +92,7 @@ if prompt := st.chat_input("What is up?"):
             with st.chat_message(ai_response["role"]):
                 st.markdown(ai_response["content"])
         else:
-            st.error("Failed to send message.")
+            st.error(
+                f"Error: {response.json().get('error', 'Failed to send message.')}")
     else:
         st.error("No conversation selected.")

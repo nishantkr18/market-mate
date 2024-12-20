@@ -1,8 +1,6 @@
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 
-from src.agent import get_answer
-
 # MongoDB Setup
 client = MongoClient('mongodb://localhost:27017/')
 db = client['marketmate']
@@ -59,35 +57,6 @@ def create_user_conversation(user_id):
 
     return conversation_info
 
-def send_message_to_conversation(conversation_id, user_message):
-    """
-    Send a message to a specific conversation.
-    Returns only the AI response to the user's message.
-    """
-    conversation = conversations_collection.find_one({"_id": ObjectId(conversation_id)})
-    if not conversation:
-        return None
-
-    message = {
-        "role": "user",
-        "content": user_message
-    }
-
-    conversations_collection.update_one(
-        {"_id": ObjectId(conversation_id)},
-        {"$push": {"messages": message}}
-    )
-
-    ai_response = {
-        "role": "ai",
-        "content": get_answer(conversation['messages'] + [message])
-    }
-    conversations_collection.update_one(
-        {"_id": ObjectId(conversation_id)},
-        {"$push": {"messages": ai_response}}
-    )
-
-    return ai_response
 
 def delete_conversation(conversation_id):
     """
@@ -105,3 +74,13 @@ def delete_conversation(conversation_id):
     )
 
     return True
+
+
+def update_conversation_history(conversation_id, messages):
+    """
+    Update the conversation history with new messages.
+    """
+    conversations_collection.update_one(
+        {"_id": ObjectId(conversation_id)},
+        {"$set": {"messages": messages}}
+    )

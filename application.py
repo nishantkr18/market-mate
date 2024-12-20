@@ -1,10 +1,10 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from src.agent import get_answer_in_conversation
 from src.database import (
     get_user_conversations,
     get_conversation,
     create_user_conversation,
-    send_message_to_conversation,
     delete_conversation
 )
 
@@ -67,7 +67,7 @@ def send_message_to_conversation_route(conversation_id):
     data = request.get_json()
     user_message = data.get("message")
 
-    ai_response = send_message_to_conversation(conversation_id, user_message)
+    ai_response = get_answer_in_conversation(conversation_id, user_message)
     if ai_response is None:
         return jsonify({"error": "Conversation not found."}), 404
 

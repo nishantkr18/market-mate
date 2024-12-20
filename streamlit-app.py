@@ -1,4 +1,3 @@
-from time import sleep
 import streamlit as st
 import requests
 st.title("ChatGPT-like clone")
@@ -54,7 +53,9 @@ for conversation in conversations:
 def fetch_messages(conversation_id):
     response = requests.get(f"http://localhost:5000/conversations/{conversation_id}")
     if response.status_code == 200:
-        return response.json().get("messages", [])
+        messages = response.json().get("messages", [])
+        # Filter to only return human and AI responses
+        return [msg for msg in messages if msg["role"] in ["user", "assistant"] and msg["content"]]
     else:
         return []
 

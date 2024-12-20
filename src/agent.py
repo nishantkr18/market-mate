@@ -1,12 +1,46 @@
-from langchain_core.messages import SystemMessage
+from typing import List
+from langchain_core.messages import SystemMessage, ToolMessage, HumanMessage, convert_to_openai_messages
 from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
+from src.database import get_conversation, update_conversation_history
+from src.tools import get_financial_news, get_quarterly_financial_results, tools
 
 # Load environment variables from a .env file
 load_dotenv()
 
+# Documentation: https://python.langchain.com/docs/how_to/function_calling/
 
-def get_answer(conv_hist) -> str:
+
+def get_answer_in_conversation(conversation_id, user_message):
+    """
+    Send a message to a specific conversation.
+    Returns only the AI response to the user's message.
+    """
+    # Get the conversation details
+    conversation = get_conversation(conversation_id)
+    if conversation is None:
+        return None
+
+    # Get the conversation history
+    conv_hist = conversation.get("messages", [])
+
+    # Add the user message to the conversation history
+    conv_hist.append(HumanMessage(user_message))
+
+    # Get the AI response
+    conv_hist = get_answer(conv_hist)
+
+    conv_hist = convert_to_openai_messages(conv_hist)
+
+    # Update the conversation with the new messages
+    update_conversation_history(
+        conversation_id, conv_hist)
+
+    # Return the AI response
+    return conv_hist[-1]
+
+
+def get_answer(conv_hist: List[dict]) -> str:
     # Construct a prompt for the AI model to generate an answer
     prompt = f"""You are MarketMate, an AI assistant specialized in answering questions related to financial markets. Your role is to provide accurate, concise, and user-friendly responses. Follow these guidelines:
 
@@ -14,7 +48,7 @@ def get_answer(conv_hist) -> str:
 2. If a question is outside the financial domain, politely inform the user that you only handle financial market-related queries.
 3. Use data-driven responses when applicable. If data is unavailable, indicate this to the user without guessing.
 4. Your tone should be professional but approachable. Avoid overly technical jargon unless the user explicitly requests it.
-5. If the user asks for specific financial data (e.g., quarterly results, valuation ratios), assume an API will fetch this data and provide a placeholder response.
+5. If the user asks for specific financial data (e.g., quarterly results, valuation ratios), use the appropriate functions to fetch this data. For example, use get_quarterly_financial_results or get_financial_news as needed.
 6. Always ensure compliance with the user's tier (e.g., Free, Tier-1) and provide simplified answers for free-tier users if required.
 
 Example Interaction:
@@ -28,8 +62,23 @@ You are part of a secure application. Avoid discussing internal implementation d
 """
 
     # Invoke the AI model with the constructed prompt
-    response = ChatOpenAI(
-        model='gpt-4o-mini').invoke([SystemMessage(prompt)] + conv_hist)
+    llm = ChatOpenAI(model='gpt-4o-mini')
 
-    # Return the question and the generated answer
-    return response.content
+    llm_with_tools = llm.bind_tools(tools, strict=True)
+
+    response = llm_with_tools.invoke([SystemMessage(prompt)] + conv_hist)
+    conv_hist.append(response)
+    if response.tool_calls:
+        for tool_call in response.tool_calls:
+            print(tool_call)
+            selected_tool = {"get_financial_news": get_financial_news,
+                             "get_quarterly_financial_results": get_quarterly_financial_results}[tool_call["name"].lower()]
+            tool_output = selected_tool(**tool_call["args"])
+            conv_hist.append(ToolMessage(
+                tool_output, tool_call_id=tool_call["id"]))
+        # Final response after tool calls
+        response = llm_with_tools.invoke([SystemMessage(prompt)] + conv_hist)
+        conv_hist.append(response)
+
+    # Return the conv history
+    return conv_hist

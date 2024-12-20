@@ -71,7 +71,27 @@ def request_rate_limit():
                 else:
                     increment_value = 0
                 if not check_rate_limit(user_id, limit_type, increment_count=increment_value):
-                    return jsonify({"error": f"Rate limit exceeded for {limit_type}. Please try again later."}), 429
+                    if limit_type == "RPM":
+                        error_message = (
+                            "You have reached the maximum number of requests per minute. "
+                            "Please wait a moment before trying again."
+                        )
+                    elif limit_type == "RPD":
+                        error_message = (
+                            "You have reached the maximum number of requests per day. "
+                            "Please try again tomorrow or consider upgrading your plan."
+                        )
+                    elif limit_type == "TPM":
+                        error_message = (
+                            "You have reached the maximum number of tokens processed per minute. "
+                            "Please wait a moment before trying again."
+                        )
+                    elif limit_type == "TPD":
+                        error_message = (
+                            "You have reached the maximum number of tokens processed per day. "
+                            "Please try again tomorrow or consider upgrading your plan."
+                        )
+                    return jsonify({"error": error_message}), 429
 
             return f(*args, **kwargs)
         return decorated_function

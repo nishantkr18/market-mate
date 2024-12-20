@@ -9,8 +9,14 @@ conversations_collection = db['conversations']
 
 def get_user_conversations(user_id):
     """
-    Get all conversations for a user. 
-    Returns a reversed list of objects, each containing conversation_id and conversation_name.
+    Retrieve all conversations associated with a specific user.
+
+    Args:
+        user_id (str): The unique identifier for the user.
+
+    Returns:
+        list: A reversed list of dictionaries, each containing 'conversation_id' and 'conversation_name'.
+              Returns None if the user is not found.
     """
     user = users_collection.find_one({"user_id": user_id})
     if not user:
@@ -19,8 +25,15 @@ def get_user_conversations(user_id):
 
 def get_conversation(conversation_id):
     """
-    Get an entire conversation given a conversation_id.
-    Returns the conversation details including all messages.
+    Retrieve the details of a specific conversation using its ID.
+
+    Args:
+        conversation_id (str): The unique identifier for the conversation.
+
+    Returns:
+        dict: A dictionary containing the conversation details, including all messages.
+              The '_id' field is converted to a string for JSON serialization.
+              Returns None if the conversation is not found.
     """
     conversation = conversations_collection.find_one({"_id": ObjectId(conversation_id)})
     if not conversation:
@@ -31,8 +44,14 @@ def get_conversation(conversation_id):
 
 def create_user_conversation(user_id):
     """
-    Create a new conversation for a user.
-    Returns a conversation_id and adds the conversation to the user.
+    Create a new conversation for a user and add it to their list of conversations.
+
+    Args:
+        user_id (str): The unique identifier for the user.
+
+    Returns:
+        dict: A dictionary containing 'conversation_id' and 'conversation_name' of the newly created conversation.
+              Returns None if the user is not found.
     """
     user = users_collection.find_one({"user_id": user_id})
     if not user:
@@ -57,10 +76,15 @@ def create_user_conversation(user_id):
 
     return conversation_info
 
-
 def delete_conversation(conversation_id):
     """
-    Delete a specific conversation.
+    Delete a specific conversation from the database.
+
+    Args:
+        conversation_id (str): The unique identifier for the conversation to be deleted.
+
+    Returns:
+        bool: True if the conversation was successfully deleted, False if the conversation was not found.
     """
     conversation = conversations_collection.find_one({"_id": ObjectId(conversation_id)})
     if not conversation:
@@ -75,10 +99,16 @@ def delete_conversation(conversation_id):
 
     return True
 
-
 def update_conversation_history(conversation_id, messages):
     """
-    Update the conversation history with new messages.
+    Update the message history of a specific conversation.
+
+    Args:
+        conversation_id (str): The unique identifier for the conversation.
+        messages (list): A list of messages to update the conversation with.
+
+    Returns:
+        None
     """
     conversations_collection.update_one(
         {"_id": ObjectId(conversation_id)},

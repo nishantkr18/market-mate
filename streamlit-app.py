@@ -1,11 +1,23 @@
 import streamlit as st
 import requests
+from typing import List, Dict, Any, Optional
+
 st.title("Market Mate")
 
-USER_ID = "nniishantkumar@gmail.com"
+# Hard coding a userid for now. This should be available after person logs in.
+USER_ID: str = "nniishantkumar@gmail.com"
 
-# Function to create a new conversation
-def create_conversation(user_id):
+
+def create_conversation(user_id: str) -> Optional[Dict[str, Any]]:
+    """
+    Create a new conversation for the given user.
+
+    Args:
+        user_id (str): The unique identifier for the user.
+
+    Returns:
+        Optional[Dict[str, Any]]: A dictionary containing the new conversation info if successful, None otherwise.
+    """
     response = requests.post(f"http://localhost:5000/users/{user_id}/conversations")
     if response.status_code == 201:
         return response.json()
@@ -14,8 +26,17 @@ def create_conversation(user_id):
             f"Error: {response.json().get('error', 'Failed to create a new conversation.')}")
         return None
 
-# Fetch user conversations and display in sidebar
-def fetch_conversations(user_id):
+
+def fetch_conversations(user_id: str) -> List[Dict[str, Any]]:
+    """
+    Fetch all conversations for the given user.
+
+    Args:
+        user_id (str): The unique identifier for the user.
+
+    Returns:
+        List[Dict[str, Any]]: A list of dictionaries, each containing conversation details.
+    """
     response = requests.get(f"http://localhost:5000/users/{user_id}/conversations")
     if response.status_code == 200:
         return response.json()
@@ -24,15 +45,13 @@ def fetch_conversations(user_id):
             f"Error: {response.json().get('error', 'Failed to fetch conversations.')}")
         return []
 
-# Add button to create a new conversation
 if st.sidebar.button("Add New Conversation"):
     new_conversation_info = create_conversation(USER_ID)
     if new_conversation_info:
-        st.sidebar.success(f"New conversation created")
-        # Select the new conversation
+        st.sidebar.success("New conversation created")
         st.session_state.selected_conversation = new_conversation_info
 
-conversations = fetch_conversations(USER_ID)
+conversations: List[Dict[str, Any]] = fetch_conversations(USER_ID)
 st.sidebar.title("Conversations")
 for conversation in conversations:
     col1, col2 = st.sidebar.columns([3, 1])
@@ -41,7 +60,6 @@ for conversation in conversations:
             st.session_state.selected_conversation = conversation
     with col2:
         if st.button("🗑️", key=f"delete_{conversation['conversation_id']}"):
-            # Add logic to delete the conversation
             response = requests.delete(f"http://localhost:5000/conversations/{conversation['conversation_id']}")
             if response.status_code == 200:
                 st.sidebar.success(f"Conversation {conversation['conversation_name']} deleted.")
@@ -52,19 +70,26 @@ for conversation in conversations:
                 st.sidebar.error(
                     f"Error: {response.json().get('error', 'Failed to delete conversation.')}")
 
-# Fetch messages for the selected conversation
-def fetch_messages(conversation_id):
+
+def fetch_messages(conversation_id: str) -> List[Dict[str, Any]]:
+    """
+    Fetch messages for a specific conversation.
+
+    Args:
+        conversation_id (str): The unique identifier for the conversation.
+
+    Returns:
+        List[Dict[str, Any]]: A list of messages filtered to include only user and assistant roles.
+    """
     response = requests.get(f"http://localhost:5000/conversations/{conversation_id}")
     if response.status_code == 200:
         messages = response.json().get("messages", [])
-        # Filter to only return human and AI responses
         return [msg for msg in messages if msg["role"] in ["user", "assistant"] and msg["content"]]
     else:
         st.error(
             f"Error: {response.json().get('error', 'Failed to fetch messages.')}")
         return []
 
-# Display messages for the selected conversation
 if "selected_conversation" in st.session_state and st.session_state.selected_conversation:
     st.session_state.messages = fetch_messages(st.session_state.selected_conversation['conversation_id'])
     st.title(st.session_state.selected_conversation['conversation_name'])
@@ -80,7 +105,6 @@ if prompt := st.chat_input("What is up?"):
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Send the user's message to the conversation
     if "selected_conversation" in st.session_state:
         response = requests.post(
             f"http://localhost:5000/users/{USER_ID}/conversations/{st.session_state.selected_conversation['conversation_id']}/send_message",

@@ -1,6 +1,7 @@
 import requests
+from typing import List, Dict, Any
 
-tools = [
+tools: List[Dict[str, Any]] = [
     {
         "type": "function",
         "function": {
@@ -48,9 +49,16 @@ tools = [
 ]
 
 
-def get_financial_news(company_name, date):
+def get_financial_news(company_name: str, date: str) -> Dict[str, Any]:
     """
     Fetch financial news for a specific company on a given date.
+
+    Args:
+        company_name (str): The name of the company for which to fetch news.
+        date (str): The date for which to fetch the news, in YYYY-MM-DD format.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the company name and a list of news articles, each with a headline, description, date, and source.
     """
     # url = "https://dummyfinancialapi.com/news"
     # payload = {
@@ -89,9 +97,16 @@ def get_financial_news(company_name, date):
     }
 
 
-def get_quarterly_financial_results(company_name, quarter):
+def get_quarterly_financial_results(company_name: str, quarter: str) -> Dict[str, Any]:
     """
     Fetch quarterly financial results for a specific company.
+
+    Args:
+        company_name (str): The name of the company for which to fetch financial results.
+        quarter (str): The quarter for which to fetch the financial results, e.g., 'Q1 2023'.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the company name, quarter, valuation ratios, and links to financial documents.
     """
     # url = "https://dummyfinancialapi.com/results"
     # payload = {

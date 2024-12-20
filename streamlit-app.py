@@ -1,6 +1,6 @@
 import streamlit as st
 import requests
-st.title("ChatGPT-like clone")
+st.title("Market Mate")
 
 USER_ID = "nniishantkumar@gmail.com"
 
@@ -83,7 +83,7 @@ if prompt := st.chat_input("What is up?"):
     # Send the user's message to the conversation
     if "selected_conversation" in st.session_state:
         response = requests.post(
-            f"http://localhost:5000/conversations/{st.session_state.selected_conversation['conversation_id']}/send_message",
+            f"http://localhost:5000/users/{USER_ID}/conversations/{st.session_state.selected_conversation['conversation_id']}/send_message",
             json={"message": prompt}
         )
         if response.status_code == 200:

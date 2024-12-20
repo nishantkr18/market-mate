@@ -29,7 +29,7 @@ def get_user_tier(user_id):
     return UserTier.FREE
 
 
-def check_rate_limit(user_id, tier, limit_type):
+def check_rate_limit(user_id, limit_type, increment_count: int):
     current_time = time.time()
     user_limits = rate_limit_store.get(user_id, {})
     limit_info = user_limits.get(
@@ -47,11 +47,11 @@ def check_rate_limit(user_id, tier, limit_type):
         limit_info["timestamp"] = current_time
 
     # Check if limit is exceeded
-    if limit_info["count"] >= RATE_LIMITS[tier][limit_type]:
+    if limit_info["count"] >= RATE_LIMITS[get_user_tier(user_id)][limit_type]:
         return False
 
     # Update count
-    limit_info["count"] += 1
+    limit_info["count"] += increment_count
     user_limits[limit_type] = limit_info
     rate_limit_store[user_id] = user_limits
     return True
@@ -61,13 +61,16 @@ def request_rate_limit():
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            user_id = request.headers.get("User-ID")
+            user_id = kwargs.get("user_id")
             if not user_id:
                 return jsonify({"error": "User ID is required"}), 400
 
-            tier = get_user_tier(user_id)
-            for limit_type in ["RPM", "RPD"]:
-                if not check_rate_limit(user_id, tier, limit_type):
+            for limit_type in ["RPM", "RPD", "TPM", "TPD"]:
+                if limit_type.startswith("R"):
+                    increment_value = 1
+                else:
+                    increment_value = 0
+                if not check_rate_limit(user_id, limit_type, increment_count=increment_value):
                     return jsonify({"error": f"Rate limit exceeded for {limit_type}. Please try again later."}), 429
 
             return f(*args, **kwargs)

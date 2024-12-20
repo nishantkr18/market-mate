@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from src.rate_limiter import request_rate_limit
 from src.agent import get_answer_in_conversation
 from src.database import (
     get_user_conversations,
@@ -58,8 +59,10 @@ def create_user_conversation_route(user_id):
 
     return jsonify(conversation_info), 201
 
-@app.route('/conversations/<conversation_id>/send_message', methods=['POST'])
-def send_message_to_conversation_route(conversation_id):
+
+@app.route('/users/<user_id>/conversations/<conversation_id>/send_message', methods=['POST'])
+@request_rate_limit()
+def send_message_to_conversation_route(user_id, conversation_id):
     """
     Send a message to a specific conversation.
     Returns only the AI response to the user's message.

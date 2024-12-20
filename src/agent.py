@@ -2,6 +2,7 @@ from typing import List
 from langchain_core.messages import SystemMessage, ToolMessage, HumanMessage, convert_to_openai_messages
 from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
+from src.rate_limiter import check_rate_limit
 from src.database import get_conversation, update_conversation_history
 from src.tools import get_financial_news, get_quarterly_financial_results, tools
 
@@ -60,6 +61,7 @@ If asked to perform a calculation or summarize information, do so accurately.
 You are part of a secure application. Avoid discussing internal implementation details or confidential information.
 
 """
+    total_tokens = 0
 
     # Invoke the AI model with the constructed prompt
     llm = ChatOpenAI(model='gpt-4o-mini')
@@ -67,6 +69,7 @@ You are part of a secure application. Avoid discussing internal implementation d
     llm_with_tools = llm.bind_tools(tools, strict=True)
 
     response = llm_with_tools.invoke([SystemMessage(prompt)] + conv_hist)
+    total_tokens += response.usage_metadata['total_tokens']
     conv_hist.append(response)
     if response.tool_calls:
         for tool_call in response.tool_calls:
@@ -78,7 +81,12 @@ You are part of a secure application. Avoid discussing internal implementation d
                 tool_output, tool_call_id=tool_call["id"]))
         # Final response after tool calls
         response = llm_with_tools.invoke([SystemMessage(prompt)] + conv_hist)
+        total_tokens += response.usage_metadata['total_tokens']
         conv_hist.append(response)
+
+    # Update rate limit usagae
+    check_rate_limit("nniishantkumar@gmail.com", "TPM", total_tokens)
+    check_rate_limit("nniishantkumar@gmail.com", "TPD", total_tokens)
 
     # Return the conv history
     return conv_hist
